@@ -100,6 +100,10 @@ class MLP(object):
 
         return A2.argmax(axis=0)
     
+    def softmax(self, Z):
+        e_Z = np.exp(Z - np.max(Z))
+        return e_Z / e_Z.sum(axis=0)
+    
     def forward_prop(self, X):
         Z1 = self.W1.dot(X.T) + self.b1
         # ReLU activation function
@@ -107,7 +111,7 @@ class MLP(object):
 
         Z2 = self.W2.dot(A1) + self.b2
         # Softmax activation function
-        A2 = np.exp(Z2) / np.sum(np.exp(Z2), axis=0)
+        A2 = self.softmax(Z2)
 
         return Z1, A1, Z2, A2
     
@@ -164,9 +168,9 @@ class MLP(object):
             if index % 1000 == 0:
                 print("Iteration: ", index)
                 print("Accuracy: ", np.sum(np.argmax(A2) == y) / X.shape[0])
-                print("Z1: ", Z1)
-                print("A1: ", A1)
-                print("Z2: ", Z2)
+                # print("Z1: ", Z1)
+                # print("A1: ", A1)
+                # print("Z2: ", Z2)
                 print("Probabilities: ", A2)
 
             index += 1
