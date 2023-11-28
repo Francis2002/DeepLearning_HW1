@@ -88,8 +88,8 @@ class MLP(object):
         # Intitialize weights and biases with N(0.1, 0.1^2) (N(miu, sigma^2))
         self.W1 = np.random.normal(0.1, 0.1**2, (hidden_size, n_features))
         self.W2 = np.random.normal(0.1, 0.1**2, (n_classes, hidden_size))
-        self.b1 = np.random.normal(0.1, 0.1**2, hidden_size)
-        self.b2 = np.random.normal(0.1, 0.1**2, n_classes)
+        self.b1 = np.random.normal(0.1, 0.1**2, (hidden_size, 1))
+        self.b2 = np.random.normal(0.1, 0.1**2, (n_classes, 1))
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
@@ -105,7 +105,13 @@ class MLP(object):
         return e_Z / e_Z.sum(axis=0)
     
     def forward_prop(self, X):
-        Z1 = self.W1.dot(X.T) + self.b1
+        # print("Shape of X: ", X.shape)
+        # print("Shape of W1: ", self.W1.shape)
+        # print("Shape of W2: ", self.W2.shape)
+        # print("Shape of b1: ", self.b1.shape)
+        # print("Shape of b2: ", self.b2.shape)
+
+        Z1 = self.W1.dot(X) + self.b1
         # ReLU activation function
         A1 = np.maximum(0, Z1)
 
@@ -125,20 +131,27 @@ class MLP(object):
         return Z > 0
 
     def back_prop(self, Z1, A1, A2, W2, X, Y):
-        Z1 = np.expand_dims(Z1, axis=1)
-        A1 = np.expand_dims(A1, axis=1)
-        A2 = np.expand_dims(A2, axis=1)
-        X = np.expand_dims(X, axis=1)
+
+        # print("Y: ", Y)
         
         one_hot_y = self.one_hot(Y)
 
+        # print("one_hot_y: ", one_hot_y)
+
+        # print("Shape of A2: ", A2.shape)
+
         dZ2 = A2 - one_hot_y
+
+        # print("dZ2: ", dZ2)
 
         dW2 = dZ2.dot(A1.T)
 
         db2 = np.sum(dZ2)
 
         dZ1 = W2.T.dot(dZ2) * self.derivative_ReLu(Z1)
+
+        # print("Shape of dZ1: ", dZ1.shape)
+
         dW1 = dZ1.dot(X.T)
         db1 = np.sum(dZ1)
         return dW1, db1, dW2, db2
@@ -157,9 +170,19 @@ class MLP(object):
     def train_epoch(self, X, y, learning_rate=0.001):
         index = 0
         for x_i, y_i in zip(X, y):
+            x_i = np.expand_dims(x_i, axis=1)
             Z1, A1, Z2, A2 = self.forward_prop(x_i)
+            # print("Shape of Z1: ", Z1.shape)
+            # print("Shape of A1: ", A1.shape)
+            # print("Shape of Z2: ", Z2.shape)
+            # print("Shape of A2: ", A2.shape)
 
             dW1, db1, dW2, db2 = self.back_prop(Z1, A1, A2, self.W2, x_i, y_i)
+            # print("Shape of dW1: ", dW1.shape)
+            # print("Shape of db1: ", db1.shape)
+            # print("Shape of dW2: ", dW2.shape)
+            # print("Shape of db2: ", db2.shape)
+
             self.W1 -= learning_rate * dW1
             self.W2 -= learning_rate * dW2
             self.b1 -= learning_rate * db1
