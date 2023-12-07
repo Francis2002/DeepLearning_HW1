@@ -153,14 +153,14 @@ class MLP(object):
 
         dW2 = dZ2.dot(A1.T)
 
-        db2 = np.sum(dZ2)
+        db2 = np.sum(dZ2, axis=0, keepdims=True)
 
         dZ1 = W2.T.dot(dZ2) * self.derivative_ReLu(Z1)
 
         dW1 = dZ1.dot(X.T)
         #changed_new: dW1 = dZ1.dot(X)
 
-        db1 = np.sum(dZ1)
+        db1 = np.sum(dZ1, axis=0, keepdims=True)
 
         return dW1, db1, dW2, db2
 
