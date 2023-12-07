@@ -79,6 +79,7 @@ class LogisticRegression(LinearModel):
         self.W -= learning_rate * np.outer(probs - y_true, x_i)
 
 
+
 class MLP(object):
     # Q1.2b. This MLP skeleton code allows the MLP to be used in place of the
     # linear models with no changes to the training loop or evaluation code
@@ -96,22 +97,30 @@ class MLP(object):
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
         
-        _, _, _, A2 = self.forward_prop(X)
+        #changed: _, _, _, A2 = self.forward_prop(X)
+        _, _, _, A2 = self.forward_prop(X.T)
 
         return A2.argmax(axis=0)
     
     def softmax(self, Z):
-        e_Z = np.exp(Z - np.max(Z))
+        #print("Output:", Z)
+        #remove the max value from each column to avoid overflow
+        Z_ = Z - np.max(Z, axis=0)
+        e_Z = np.exp(Z_)
+        # print("e_Z: ", e_Z)
+        # print("e_Z.sum(axis=0): ", e_Z.sum(axis=0))
         return e_Z / e_Z.sum(axis=0)
     
     def forward_prop(self, X):
-        # print("Shape of X: ", X.shape)
-        # print("Shape of W1: ", self.W1.shape)
+        #print("Shape of X in fp: ", X.shape)
+        #print("Shape of W1: ", self.W1.shape)
+        #exit(0)
         # print("Shape of W2: ", self.W2.shape)
         # print("Shape of b1: ", self.b1.shape)
         # print("Shape of b2: ", self.b2.shape)
 
         Z1 = self.W1.dot(X) + self.b1
+        #changed_new: Z1 = self.W1.dot(X.T) + self.b1
         # ReLU activation function
         A1 = np.maximum(0, Z1)
 
@@ -123,26 +132,24 @@ class MLP(object):
     
     #function that receives a 1xn vector of single digit integers and returns a vector with the one-hot encodings
     def one_hot(self, Y):
-        one_hot_y = np.zeros((self.W2.shape[0], 1))
-        one_hot_y[Y] = 1
+        if Y.shape:
+            one_hot_y = np.zeros((self.W2.shape[0], Y.shape[0]))
+            for i in range(Y.shape[0]):
+                one_hot_y[Y[i]][i] = 1
+        else:
+            one_hot_y = np.zeros((self.W2.shape[0], 1))
+            one_hot_y[Y] = 1
+
         return one_hot_y
     
     def derivative_ReLu(self, Z):
         return Z > 0
 
     def back_prop(self, Z1, A1, A2, W2, X, Y):
-
-        # print("Y: ", Y)
         
         one_hot_y = self.one_hot(Y)
 
-        # print("one_hot_y: ", one_hot_y)
-
-        # print("Shape of A2: ", A2.shape)
-
         dZ2 = A2 - one_hot_y
-
-        # print("dZ2: ", dZ2)
 
         dW2 = dZ2.dot(A1.T)
 
@@ -150,10 +157,11 @@ class MLP(object):
 
         dZ1 = W2.T.dot(dZ2) * self.derivative_ReLu(Z1)
 
-        # print("Shape of dZ1: ", dZ1.shape)
-
         dW1 = dZ1.dot(X.T)
+        #changed_new: dW1 = dZ1.dot(X)
+
         db1 = np.sum(dZ1)
+
         return dW1, db1, dW2, db2
 
     def evaluate(self, X, y):
@@ -162,15 +170,24 @@ class MLP(object):
         y (n_examples): gold labels
         """
         # Identical to LinearModel.evaluate()
+        #print("Shape of X in evaluate: ", X.shape)
         y_hat = self.predict(X)
+        #print(y_hat)
+        #print(y_hat.shape)
+        #exit(0)
         n_correct = (y == y_hat).sum()
         n_possible = y.shape[0]
         return n_correct / n_possible
 
     def train_epoch(self, X, y, learning_rate=0.001):
+        #print("Shape of X: ", X.shape)
         index = 0
         for x_i, y_i in zip(X, y):
+            #print("Shape of x_i: ", x_i.shape)
             x_i = np.expand_dims(x_i, axis=1)
+            
+            #changed_new: x_i=x_i.T
+            #print("Shape of x_i: ", x_i.shape)
             Z1, A1, Z2, A2 = self.forward_prop(x_i)
             # print("Shape of Z1: ", Z1.shape)
             # print("Shape of A1: ", A1.shape)
@@ -188,9 +205,10 @@ class MLP(object):
             self.b1 -= learning_rate * db1
             self.b2 -= learning_rate * db2
 
-            if index % 1000 == 0:
+            if index % 5000 == 0:
                 print("Iteration: ", index)
-                print("Accuracy: ", np.sum(np.argmax(A2) == y) / X.shape[0])
+                print("Accuracy: ", self.evaluate(X, y))
+                #exit(0)
                 # print("Z1: ", Z1)
                 # print("A1: ", A1)
                 # print("Z2: ", Z2)
@@ -199,11 +217,12 @@ class MLP(object):
             index += 1
 
         #calculate loss
+        #print("Shape of X outside: ", X.shape)
         _, _, _, A2 = self.forward_prop(X.T)
         one_hot_y = self.one_hot(y)
+        #compute cross entropy loss given the probabilities and the one-hot encoding
         loss = -np.sum(one_hot_y * np.log(A2)) / X.shape[0]
         return loss
-
 
 def plot(epochs, train_accs, val_accs):
     plt.xlabel('Epoch')
@@ -246,7 +265,8 @@ def main():
     test_X, test_y = data["test"]
     n_classes = np.unique(train_y).size
     n_feats = train_X.shape[1]
-
+    #print(train_X.shape)
+    #exit(0)
     # initialize the model
     if opt.model == 'perceptron':
         model = Perceptron(n_classes, n_feats)
